@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CrowdSec WebUI</title>
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>CrowdSec Decisions</h1>
+      <p class="muted">Просмотр и ручное управление блокировками через CrowdSec LAPI.</p>
+
+      <section>
+        <h2>Create block</h2>
+        <form id="create-form">
+          <div class="grid">
+            <label>
+              Scope
+              <input name="scope" value="ip" />
+            </label>
+            <label>
+              Value (IP / range)
+              <input name="value" placeholder="1.2.3.4" required />
+            </label>
+            <label>
+              Type
+              <input name="type" value="ban" />
+            </label>
+            <label>
+              Duration
+              <input name="duration" value="4h" />
+            </label>
+          </div>
+          <button type="submit">Create decision</button>
+        </form>
+      </section>
+
+      <section>
+        <h2>Filters</h2>
+        <form id="filters-form">
+          <div class="grid">
+            <label>
+              Scope
+              <input name="scope" placeholder="ip" />
+            </label>
+            <label>
+              Value
+              <input name="value" placeholder="1.2.3.4" />
+            </label>
+            <label>
+              Type
+              <input name="type" placeholder="ban" />
+            </label>
+            <label>
+              Limit
+              <input name="limit" type="number" min="1" max="500" value="100" />
+            </label>
+          </div>
+          <button type="submit">Refresh</button>
+        </form>
+      </section>
+
+      <section>
+        <h2>Active decisions</h2>
+        <div class="table-wrap">
+          <table id="decisions-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Value</th>
+                <th>Scope</th>
+                <th>Type</th>
+                <th>Origin</th>
+                <th>Scenario</th>
+                <th>Until</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <p id="status" class="muted"></p>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

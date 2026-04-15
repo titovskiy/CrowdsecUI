@@ -1,0 +1,27 @@
+body {
+  background: linear-gradient(120deg, #f3f7f9, #ebf2f6);
+}
+
+h1 {
+  margin-top: 2rem;
+}
+
+section {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  background: #ffffffcc;
+  border-radius: 12px;
+  backdrop-filter: blur(2px);
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.muted {
+  color: #546e7a;
+}
+
+button.secondary {
+  margin: 0;
+}
