@@ -5,19 +5,26 @@
 ## Что умеет
 
 - Просмотр активных решений (`/v1/decisions`)
-- Фильтрация по `scope`, `value`, `type`, `limit`
-- Ручное добавление блокировки (`POST /v1/decisions`)
+- Фильтрация по `scope`, `value`, `type`, `origin`, `scenario`, `limit`
+- Ручное добавление блокировки (`POST /v1/alerts`, manual alert)
 - Удаление блокировки по `id` (`DELETE /v1/decisions/{id}`)
 
 ## Требования
 
 - Доступ к CrowdSec Local API (LAPI)
-- Ключ bouncer API
+- Ключ bouncer API (для чтения)
+- Machine login/password (для создания и удаления решений через UI)
 
-Получить ключ можно так:
+Получить bouncer key:
 
 ```bash
 cscli bouncers add crowdsec-webui
+```
+
+Получить machine credentials:
+
+```bash
+cscli machines add crowdsec-webui
 ```
 
 ## Быстрый старт в Docker
@@ -28,7 +35,9 @@ cscli bouncers add crowdsec-webui
 cp .env.example .env
 ```
 
-2. Заполнить `CROWDSEC_API_KEY` в `.env`.
+2. Заполнить в `.env`:
+- `CROWDSEC_API_KEY` для просмотра решений
+- `CROWDSEC_MACHINE_LOGIN` и `CROWDSEC_MACHINE_PASSWORD` для ручного create/delete
 
 3. Запустить:
 
@@ -38,13 +47,16 @@ docker compose up --build -d
 
 4. Открыть UI:
 
-- `http://localhost:8081`
+- `http://localhost:${WEB_PORT}` (по умолчанию `http://localhost:8088`)
 
 ## Конфигурация
 
 - `CROWDSEC_API_URL` - URL CrowdSec LAPI, по умолчанию `http://crowdsec:8080`
-- `CROWDSEC_API_KEY` - ключ bouncer (обязательно)
+- `CROWDSEC_API_KEY` - ключ bouncer (read-only)
+- `CROWDSEC_MACHINE_LOGIN` - логин machine-пользователя LAPI (write-операции)
+- `CROWDSEC_MACHINE_PASSWORD` - пароль machine-пользователя LAPI (write-операции)
 - `HTTP_TIMEOUT` - timeout HTTP-запросов в секундах, по умолчанию `10`
+- `WEB_PORT` - порт публикации WebUI на хосте, по умолчанию `8088`
 
 ## Локальный запуск (без Docker)
 

@@ -24,9 +24,75 @@ function normalizeList(payload) {
   return [];
 }
 
+async function responseError(response) {
+  const body = await response.text();
+  if (!body) return `${response.status} ${response.statusText}`;
+  try {
+    const json = JSON.parse(body);
+    if (json?.detail) return String(json.detail);
+  } catch (_e) {
+    // Keep raw text fallback.
+  }
+  return body;
+}
+
+function formatDateTime(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return escapeHtml(value);
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+function parseDurationMs(duration) {
+  if (!duration) return null;
+  const source = String(duration).trim();
+  const re = /(\d+)(ns|us|µs|ms|s|m|h|d|w)/g;
+  const unitMs = {
+    ns: 1 / 1e6,
+    us: 1 / 1e3,
+    'µs': 1 / 1e3,
+    ms: 1,
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+    w: 7 * 24 * 60 * 60 * 1000,
+  };
+
+  let total = 0;
+  let matched = false;
+  let m;
+  while ((m = re.exec(source)) !== null) {
+    matched = true;
+    total += Number(m[1]) * unitMs[m[2]];
+  }
+  return matched ? total : null;
+}
+
+function computeCreated(item) {
+  const explicitCreated = item.created_at ?? item.start_at ?? item.created;
+  if (explicitCreated) return explicitCreated;
+
+  const untilRaw = item.until ?? item.expiration ?? item.expires_at;
+  if (!untilRaw || !item.duration) return '';
+
+  const untilDate = new Date(untilRaw);
+  const durationMs = parseDurationMs(item.duration);
+  if (Number.isNaN(untilDate.getTime()) || durationMs === null) return '';
+
+  return new Date(untilDate.getTime() - durationMs).toISOString();
+}
+
 function renderRows(items) {
   if (!items.length) {
-    tableBody.innerHTML = '<tr><td colspan="8">No active decisions</td></tr>';
+    tableBody.innerHTML = '<tr><td colspan="9">No active decisions</td></tr>';
     return;
   }
 
@@ -38,7 +104,8 @@ function renderRows(items) {
       const type = escapeHtml(item.type);
       const origin = escapeHtml(item.origin);
       const scenario = escapeHtml(item.scenario);
-      const until = escapeHtml(item.until ?? item.expiration ?? '');
+      const created = formatDateTime(computeCreated(item));
+      const until = formatDateTime(item.until ?? item.expiration ?? item.expires_at);
       const action = id
         ? `<button data-id="${id}" class="delete-btn secondary">Delete</button>`
         : '';
@@ -51,6 +118,7 @@ function renderRows(items) {
           <td>${type}</td>
           <td>${origin}</td>
           <td>${scenario}</td>
+          <td>${created}</td>
           <td>${until}</td>
           <td>${action}</td>
         </tr>
@@ -73,7 +141,7 @@ async function fetchDecisions() {
   try {
     const response = await fetch(`/api/decisions?${params.toString()}`);
     if (!response.ok) {
-      throw new Error(await response.text());
+      throw new Error(await responseError(response));
     }
 
     const payload = await response.json();
@@ -100,7 +168,7 @@ createForm.addEventListener('submit', async (event) => {
     });
 
     if (!response.ok) {
-      throw new Error(await response.text());
+      throw new Error(await responseError(response));
     }
 
     createForm.reset();
@@ -132,7 +200,7 @@ tableBody.addEventListener('click', async (event) => {
   try {
     const response = await fetch(`/api/decisions/${id}`, { method: 'DELETE' });
     if (!response.ok) {
-      throw new Error(await response.text());
+      throw new Error(await responseError(response));
     }
     setStatus(`Decision #${id} deleted.`);
     await fetchDecisions();

@@ -4,10 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CrowdSec WebUI</title>
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
-    />
     <link rel="stylesheet" href="/static/styles.css" />
   </head>
   <body>
@@ -57,6 +53,14 @@
               <input name="type" placeholder="ban" />
             </label>
             <label>
+              Origin
+              <input name="origin" placeholder="crowdsec" />
+            </label>
+            <label>
+              Scenario
+              <input name="scenario" placeholder="crowdsecurity/ssh-bf" />
+            </label>
+            <label>
               Limit
               <input name="limit" type="number" min="1" max="500" value="100" />
             </label>
@@ -77,6 +81,7 @@
                 <th>Type</th>
                 <th>Origin</th>
                 <th>Scenario</th>
+                <th>Created</th>
                 <th>Until</th>
                 <th></th>
               </tr>
