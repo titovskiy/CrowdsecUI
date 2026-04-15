@@ -5,6 +5,7 @@
 ## Что умеет
 
 - Просмотр активных решений (`/v1/decisions`)
+- Сводка метрик CrowdSec из `/metrics` (аналогично `cscli metrics`)
 - Фильтрация по `scope`, `value`, `type`, `origin`, `scenario`, `limit`
 - Ручное добавление блокировки (`POST /v1/alerts`, manual alert)
 - Удаление блокировки по `id` (`DELETE /v1/decisions/{id}`)
@@ -52,6 +53,7 @@ docker compose up --build -d
 ## Конфигурация
 
 - `CROWDSEC_API_URL` - URL CrowdSec LAPI, по умолчанию `http://crowdsec:8080`
+- `CROWDSEC_METRICS_URL` - явный URL Prometheus-метрик CrowdSec (например `http://crowdsec:6060/metrics`), если не задан, UI пробует `${CROWDSEC_API_URL}/metrics`
 - `CROWDSEC_API_KEY` - ключ bouncer (read-only)
 - `CROWDSEC_MACHINE_LOGIN` - логин machine-пользователя LAPI (write-операции)
 - `CROWDSEC_MACHINE_PASSWORD` - пароль machine-пользователя LAPI (write-операции)

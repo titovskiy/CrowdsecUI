@@ -25,6 +25,32 @@ section {
   backdrop-filter: blur(2px);
 }
 
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+}
+
+.metric-card {
+  margin: 0;
+  padding: 0.45rem 0.55rem;
+  background: #f9fcfe;
+  border: 1px solid #dde7ee;
+  border-radius: 8px;
+}
+
+.metric-card span {
+  display: block;
+  font-size: 0.75rem;
+  color: #516575;
+}
+
+.metric-card strong {
+  font-size: 0.98rem;
+  font-weight: 650;
+}
+
 .table-wrap {
   overflow-x: auto;
 }

@@ -2,6 +2,7 @@ const tableBody = document.querySelector('#decisions-table tbody');
 const statusNode = document.getElementById('status');
 const createForm = document.getElementById('create-form');
 const filtersForm = document.getElementById('filters-form');
+const refreshMetricsBtn = document.getElementById('refresh-metrics-btn');
 
 function setStatus(text, isError = false) {
   statusNode.textContent = text;
@@ -48,6 +49,34 @@ function formatDateTime(value) {
     minute: '2-digit',
     hour12: false,
   });
+}
+
+function renderMetricSummary(summary) {
+  const metrics = document.querySelectorAll('[data-metric]');
+  for (const node of metrics) {
+    const key = node.dataset.metric;
+    const value = summary?.[key];
+    node.textContent = value ?? '-';
+  }
+}
+
+async function fetchMetricsSummary() {
+  try {
+    const response = await fetch('/api/metrics/summary');
+    if (!response.ok) {
+      throw new Error(await responseError(response));
+    }
+    const payload = await response.json();
+    renderMetricSummary(payload.summary ?? {});
+    if (payload.available === false) {
+      setStatus(`Metrics unavailable: ${payload.detail}`);
+    } else if (payload.source) {
+      setStatus(`Metrics source: ${payload.source}`);
+    }
+  } catch (error) {
+    renderMetricSummary({});
+    setStatus(`Failed to load metrics: ${error.message}`, true);
+  }
 }
 
 function parseDurationMs(duration) {
@@ -209,4 +238,11 @@ tableBody.addEventListener('click', async (event) => {
   }
 });
 
+if (refreshMetricsBtn) {
+  refreshMetricsBtn.addEventListener('click', async () => {
+    await fetchMetricsSummary();
+  });
+}
+
+fetchMetricsSummary();
 fetchDecisions();

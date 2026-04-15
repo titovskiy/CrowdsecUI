@@ -1,4 +1,5 @@
 import os
+import re
 from datetime import UTC, datetime
 from typing import Any
 
@@ -19,7 +20,9 @@ CROWDSEC_API_URL = os.getenv("CROWDSEC_API_URL", "http://crowdsec:8080").rstrip(
 CROWDSEC_API_KEY = os.getenv("CROWDSEC_API_KEY", "")
 CROWDSEC_MACHINE_LOGIN = os.getenv("CROWDSEC_MACHINE_LOGIN", "")
 CROWDSEC_MACHINE_PASSWORD = os.getenv("CROWDSEC_MACHINE_PASSWORD", "")
+CROWDSEC_METRICS_URL = os.getenv("CROWDSEC_METRICS_URL", "").rstrip("/")
 HTTP_TIMEOUT = float(os.getenv("HTTP_TIMEOUT", "10"))
+PROM_LINE_RE = re.compile(r"^([a-zA-Z_:][a-zA-Z0-9_:]*)(?:\{[^}]*\})?\s+([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)$")
 
 
 def _headers(token: str | None = None) -> dict[str, str]:
@@ -135,6 +138,97 @@ async def _lapi_request(method: str, path: str, **kwargs: Any) -> Any:
             return {"ok": True}
     except httpx.RequestError as exc:
         raise HTTPException(status_code=502, detail=f"Cannot connect to CrowdSec LAPI: {exc}") from exc
+
+
+def _parse_prometheus(text: str) -> dict[str, float]:
+    values: dict[str, float] = {}
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        m = PROM_LINE_RE.match(line)
+        if not m:
+            continue
+        key = m.group(1)
+        val = float(m.group(2))
+        values[key] = values.get(key, 0.0) + val
+    return values
+
+
+def _as_number(value: float) -> int | float:
+    as_int = int(value)
+    if abs(value - as_int) < 1e-9:
+        return as_int
+    return round(value, 4)
+
+
+def _metrics_candidates() -> list[str]:
+    if CROWDSEC_METRICS_URL:
+        return [CROWDSEC_METRICS_URL]
+
+    base = CROWDSEC_API_URL
+    candidates = [f"{base}/metrics"]
+    if base.endswith("/v1"):
+        candidates.append(f"{base[:-3]}/metrics")
+    return list(dict.fromkeys(candidates))
+
+
+@app.get("/api/metrics/summary")
+async def metrics_summary() -> Any:
+    zero_summary = {
+        "active_decisions": 0,
+        "alerts": 0,
+        "parser_hits_total": 0,
+        "parser_hits_ok": 0,
+        "parser_hits_ko": 0,
+        "parser_success_rate_pct": 0,
+        "bucket_pour_ok_total": 0,
+        "bucket_pour_ko_total": 0,
+        "lapi_route_requests_total": 0,
+    }
+
+    errors: list[str] = []
+    parsed: dict[str, float] | None = None
+    used_url = ""
+    try:
+        async with httpx.AsyncClient(timeout=HTTP_TIMEOUT) as client:
+            for metrics_url in _metrics_candidates():
+                response = await client.get(metrics_url, headers={"Accept": "text/plain"})
+                if response.status_code >= 400:
+                    errors.append(f"{metrics_url} -> HTTP {response.status_code}")
+                    continue
+                parsed = _parse_prometheus(response.text)
+                used_url = metrics_url
+                break
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=502, detail=f"Cannot fetch CrowdSec metrics: {exc}") from exc
+
+    if parsed is None:
+        detail = (
+            "Unable to fetch metrics. "
+            "Set CROWDSEC_METRICS_URL to the same endpoint as used by `cscli metrics --url ...` "
+            f"(attempts: {', '.join(errors)})"
+        )
+        return {"available": False, "detail": detail, "summary": zero_summary}
+
+    parser_hits = parsed.get("cs_parser_hits_total", 0.0)
+    parser_ok = parsed.get("cs_parser_hits_ok_total", 0.0)
+    parser_ko = parsed.get("cs_parser_hits_ko_total", 0.0)
+    parser_success_rate = (parser_ok / parser_hits * 100.0) if parser_hits else 0.0
+
+    summary = {
+        "active_decisions": _as_number(parsed.get("cs_active_decisions", 0.0)),
+        "alerts": _as_number(parsed.get("cs_alerts", 0.0)),
+        "parser_hits_total": _as_number(parser_hits),
+        "parser_hits_ok": _as_number(parser_ok),
+        "parser_hits_ko": _as_number(parser_ko),
+        "parser_success_rate_pct": round(parser_success_rate, 2),
+        "bucket_pour_ok_total": _as_number(parsed.get("cs_bucket_pour_ok_total", 0.0)),
+        "bucket_pour_ko_total": _as_number(parsed.get("cs_bucket_pour_ko_total", 0.0)),
+        "lapi_route_requests_total": _as_number(parsed.get("cs_lapi_route_requests_total", 0.0)),
+    }
+
+    return {"available": True, "source": used_url, "summary": summary}
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -12,6 +12,22 @@
       <p class="muted">Просмотр и ручное управление блокировками через CrowdSec LAPI.</p>
 
       <section>
+        <h2>Metrics summary</h2>
+        <button type="button" id="refresh-metrics-btn">Refresh metrics</button>
+        <div class="metrics-grid" id="metrics-grid">
+          <article class="metric-card"><span>Active decisions</span><strong data-metric="active_decisions">-</strong></article>
+          <article class="metric-card"><span>Alerts</span><strong data-metric="alerts">-</strong></article>
+          <article class="metric-card"><span>Parser hits</span><strong data-metric="parser_hits_total">-</strong></article>
+          <article class="metric-card"><span>Parser OK</span><strong data-metric="parser_hits_ok">-</strong></article>
+          <article class="metric-card"><span>Parser KO</span><strong data-metric="parser_hits_ko">-</strong></article>
+          <article class="metric-card"><span>Parser success %</span><strong data-metric="parser_success_rate_pct">-</strong></article>
+          <article class="metric-card"><span>Bucket pour OK</span><strong data-metric="bucket_pour_ok_total">-</strong></article>
+          <article class="metric-card"><span>Bucket pour KO</span><strong data-metric="bucket_pour_ko_total">-</strong></article>
+          <article class="metric-card"><span>LAPI requests</span><strong data-metric="lapi_route_requests_total">-</strong></article>
+        </div>
+      </section>
+
+      <section>
         <h2>Create block</h2>
         <form id="create-form">
           <div class="grid">
